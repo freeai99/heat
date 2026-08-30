@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { CircleAlert, Clock, Database, MapPin, ChevronDown, ChevronUp } from "lucide-react";
@@ -265,11 +265,17 @@ function SourceRow({
   degraded?: boolean;
   notConnected?: boolean;
 }) {
-  const text = notConnected ? `${label}: Not connected` : ok ? `${label} ✓ Live` : degraded ? `${label}: Degraded` : `${label}: Unavailable`;
+  const text = notConnected
+    ? `${label}: Not connected`
+    : ok
+      ? `${label} ✓ Live`
+      : degraded
+        ? `${label}: Degraded`
+        : `${label}: Unavailable`;
   return <p className="font-semibold">{text}</p>;
 }
 
-function FlowCard({ title, step, children }: { title: string; step: number; children: React.ReactNode }) {
+function FlowCard({ title, step, children }: { title: string; step: number; children: ReactNode }) {
   return (
     <article className="panel p-4">
       <p className="label-caps">
