@@ -31,3 +31,10 @@ export function fmt(v: number | null | undefined, unit = "", digits = 1): string
   if (v === null || v === undefined || !Number.isFinite(v)) return "—";
   return `${v.toFixed(digits)}${unit}`;
 }
+import { getImdStatus } from "./imd.functions";
+
+export const imdQueryOptions = queryOptions({
+  queryKey: ["imd-status"],
+  queryFn: () => getImdStatus(),
+  staleTime: 10 * 60 * 1000,
+});
