@@ -30,7 +30,7 @@ const LEVEL_RANK: Record<EarlyWarningLevel, number> = {
   EXTREME: 3,
 };
 
-const LEVEL_META: Record
+const LEVEL_META: Record<
   EarlyWarningLevel,
   { emoji: string; label: string; colorClass: string; word: string }
 > = {
