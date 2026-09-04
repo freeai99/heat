@@ -82,8 +82,9 @@ const [demographicSourceLabel, setDemographicSourceLabel] =
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setDataset(loadWardDataset() ?? builtInWardDataset());
-  }, []);
+  setDataset(loadWardDataset() ?? builtInWardDataset());
+  setDemographics(loadDemographicsDataset());
+}, []);
 
   async function handleFile(file: File) {
     setErrors([]);
