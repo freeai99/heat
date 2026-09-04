@@ -469,9 +469,10 @@ const [demographicSourceLabel, setDemographicSourceLabel] =
         <section className="panel p-4 sm:p-5">
           <h2 className="font-display text-lg font-semibold">Ward boundaries</h2>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Ward-level analysis requires an authoritative ward boundary file. No ward polygons are
-            invented by this system: until a verified GeoJSON file is imported, only the real Jaipur
-            municipal boundary is shown.
+           Ward-level analysis uses the verified ward geometry currently
+loaded in this application. Demographic vulnerability is shown
+only for wards with matching imported demographic records.
+No demographic values are fabricated.
           </p>
           <SourceTag
             kind="STATIC"
@@ -572,8 +573,7 @@ const [demographicSourceLabel, setDemographicSourceLabel] =
               </div>
             ) : (
               <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-                No ward dataset loaded. Ward risk scoring stays disabled until verified geometry is
-                imported.
+              No ward dataset is currently loaded.
               </p>
             )}
 
