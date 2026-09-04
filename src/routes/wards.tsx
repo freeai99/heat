@@ -112,6 +112,58 @@ const [demographicSourceLabel, setDemographicSourceLabel] =
     setDataset(next);
     setSelectedId(null);
   }
+  async function handleDemographicsFile(file: File) {
+  setDemographicErrors([]);
+  setDemographicWarnings([]);
+
+  try {
+    const extension = file.name
+      .split(".")
+      .pop()
+      ?.toLowerCase();
+
+    let result;
+
+    if (extension === "csv") {
+      result = parseDemographicsCsv(await file.text());
+    } else if (extension === "json") {
+      const parsed = JSON.parse(await file.text());
+      result = parseDemographicsJson(parsed);
+    } else {
+      setDemographicErrors([
+        "Only CSV and JSON demographic files are supported.",
+      ]);
+      return;
+    }
+
+    setDemographicWarnings(result.warnings);
+
+    if (!result.ok) {
+      setDemographicErrors(
+        result.errors.slice(0, 20),
+      );
+      return;
+    }
+
+    const next: DemographicsDataset = {
+      fileName: file.name,
+      sourceLabel:
+        demographicSourceLabel.trim() ||
+        "Operator-supplied demographic dataset",
+      importedAt: new Date().toISOString(),
+      records: result.records,
+    };
+
+    saveDemographicsDataset(next);
+    setDemographics(next);
+  } catch (error) {
+    setDemographicErrors([
+      error instanceof Error
+        ? `Unable to import demographic file: ${error.message}`
+        : "Unable to import demographic file.",
+    ]);
+  }
+}
 
   const wards: Ward[] = dataset?.wards ?? [];
   const selected = wards.find((w) => w.id === selectedId) ?? null;
