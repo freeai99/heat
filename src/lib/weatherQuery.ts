@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 
-import { getJaipurWeather } from "./weather.functions";
 import { getImdStatus } from "./imd.functions";
+import { getJaipurWeather } from "./weather.functions";
 
 export const weatherQueryOptions = queryOptions({
   queryKey: ["jaipur-weather"],
@@ -13,12 +13,18 @@ export const imdQueryOptions = queryOptions({
   queryKey: ["imd-status"],
   queryFn: () => getImdStatus(),
   staleTime: 10 * 60 * 1000,
+  retry: 1,
 });
 
 export function formatIST(iso: string | null | undefined): string {
   if (!iso) return "unavailable";
+
   const d = new Date(iso.length <= 16 ? `${iso}:00+05:30` : iso);
-  if (Number.isNaN(d.getTime())) return "unavailable";
+
+  if (Number.isNaN(d.getTime())) {
+    return "unavailable";
+  }
+
   return new Intl.DateTimeFormat("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -26,15 +32,40 @@ export function formatIST(iso: string | null | undefined): string {
   }).format(d);
 }
 
-export function freshnessOf(iso: string | null | undefined) {
-  if (!iso) return "STALE" as const;
-  const ageH = (Date.now() - new Date(iso).getTime()) / 3_600_000;
-  if (ageH < 6) return "LIVE" as const;
-  if (ageH < 24) return "RECENT" as const;
-  return "STALE" as const;
+export function freshnessOf(
+  iso: string | null | undefined,
+):
+  | "LIVE"
+  | "RECENT"
+  | "STALE" {
+  if (!iso) return "STALE";
+
+  const timestamp = new Date(iso).getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return "STALE";
+  }
+
+  const ageH = (Date.now() - timestamp) / 3_600_000;
+
+  if (ageH < 6) return "LIVE";
+  if (ageH < 24) return "RECENT";
+
+  return "STALE";
 }
 
-export function fmt(v: number | null | undefined, unit = "", digits = 1): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
-  return `${v.toFixed(digits)}${unit}`;
+export function fmt(
+  value: number | null | undefined,
+  unit = "",
+  digits = 1,
+): string {
+  if (
+    value === null ||
+    value === undefined ||
+    !Number.isFinite(value)
+  ) {
+    return "—";
+  }
+
+  return `${value.toFixed(digits)}${unit}`;
 }
