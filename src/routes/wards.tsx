@@ -168,6 +168,12 @@ const [demographicSourceLabel, setDemographicSourceLabel] =
   const wards: Ward[] = dataset?.wards ?? [];
   const selected = wards.find((w) => w.id === selectedId) ?? null;
   const totalArea = wards.reduce((sum, w) => sum + w.areaKm2, 0);
+  const demographicSummary = demographics
+  ? summarizeDemographics(
+      demographics.records,
+      wards,
+    )
+  : null;
 
   return (
     <AppShell>
