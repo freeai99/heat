@@ -65,6 +65,20 @@ function WardsPage() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sourceLabel, setSourceLabel] = useState("");
+  const [demographics, setDemographics] =
+  useState<DemographicsDataset | null>(null);
+
+const [demographicErrors, setDemographicErrors] =
+  useState<string[]>([]);
+
+const [demographicWarnings, setDemographicWarnings] =
+  useState<string[]>([]);
+
+const demographicFileRef =
+  useRef<HTMLInputElement>(null);
+
+const [demographicSourceLabel, setDemographicSourceLabel] =
+  useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
