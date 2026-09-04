@@ -48,7 +48,11 @@ function Dashboard() {
   const { data } = useSuspenseQuery(weatherQueryOptions);
   const { data: imd } = useSuspenseQuery(imdQueryOptions);
   const [showDetails, setShowDetails] = useState(false);
-
+import {
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
   const warning = computeEarlyWarning(data);
   const riskLevel = levelToRiskNumber(warning.level) as RiskLevel;
   const c = data.current;
@@ -99,15 +103,34 @@ function Dashboard() {
           </p>
         </FlowCard>
 
-        <FlowCard title="Highest-Risk Wards" step={3}>
-          <p className="text-sm text-muted-foreground">
-            Ward-level risk needs verified ward + vulnerability data (Phases 4–6) before it can be shown
-            honestly — nothing is guessed.
-          </p>
-          <a href="/wards" className="mt-2 inline-block text-xs font-semibold text-accent underline">
-            View ward boundaries →
-          </a>
-        </FlowCard>
+       <FlowCard title="Highest-Risk Wards" step={3}>
+  {demographicsLoaded ? (
+    <>
+      <p className="text-sm font-semibold">
+        Vulnerability data loaded
+      </p>
+
+      <p className="mt-1 text-xs text-muted-foreground">
+        Ward vulnerability scores are available. Final
+        heat-risk ranking remains disabled until the
+        multi-factor risk engine is implemented.
+      </p>
+    </>
+  ) : (
+    <>
+      <p className="text-sm text-muted-foreground">
+        Ward vulnerability data has not been imported yet.
+      </p>
+
+      <a
+        href="/wards"
+        className="mt-2 inline-block text-xs font-semibold text-accent underline"
+      >
+        Import demographic data →
+      </a>
+    </>
+  )}
+</FlowCard>
 
         <FlowCard title="Recommended Action" step={4}>
           <RiskBadge level={riskLevel} />
