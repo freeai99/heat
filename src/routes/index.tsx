@@ -1,4 +1,12 @@
-import { useState, type ReactNode } from "react";
+import {
+  loadDemographicsDataset,
+  summarizeDemographics,
+} from "../lib/demographics";
+import {
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { CircleAlert, Clock, Database, MapPin, ChevronDown, ChevronUp } from "lucide-react";
