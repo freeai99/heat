@@ -1,6 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  calculateVulnerability,
+  clearDemographicsDataset,
+  getWardDemographics,
+  loadDemographicsDataset,
+  parseDemographicsCsv,
+  parseDemographicsJson,
+  saveDemographicsDataset,
+  summarizeDemographics,
+} from "../lib/demographics";
+
+import type {
+  DemographicsDataset,
+} from "../types/demographics";
 
 import { AppShell } from "../components/AppShell";
 import { SourceTag } from "../components/SourceTag";
