@@ -175,7 +175,295 @@ const [demographicSourceLabel, setDemographicSourceLabel] =
     )
   : null;
 
-  return (
+  return
+  <section className="panel p-4 sm:p-5">
+  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h3 className="font-display text-base font-semibold">
+        Ward demographics &amp; vulnerability
+      </h3>
+
+      <p className="mt-1 max-w-3xl text-xs text-muted-foreground">
+        Import a verified ward-level demographic dataset.
+        Missing indicators are preserved as missing and are
+        never treated as zero.
+      </p>
+    </div>
+
+    <a
+      href="/templates/ward-vulnerability-template.csv"
+      download
+      className="inline-flex w-fit rounded border border-input px-3 py-1.5 text-xs font-medium hover:bg-accent"
+    >
+      Download CSV template
+    </a>
+  </div>
+
+  <div className="mt-4 grid gap-3 md:grid-cols-2">
+    <label className="block text-xs font-medium">
+      Source / provenance
+      <input
+        value={demographicSourceLabel}
+        onChange={(event) =>
+          setDemographicSourceLabel(
+            event.target.value,
+          )
+        }
+        placeholder="e.g. Census / JMC verified dataset"
+        className="mt-1 w-full rounded border border-input bg-background px-2 py-1.5 text-sm"
+      />
+    </label>
+
+    <div>
+      <label className="block text-xs font-medium">
+        Import CSV or JSON
+      </label>
+
+      <input
+        ref={demographicFileRef}
+        type="file"
+        accept=".csv,.json,text/csv,application/json"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+
+          if (file) {
+            void handleDemographicsFile(file);
+          }
+        }}
+        className="mt-1 block w-full text-xs file:mr-3 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground"
+      />
+    </div>
+  </div>
+
+  {demographicErrors.length > 0 ? (
+    <ul className="mt-3 space-y-1 rounded border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+      {demographicErrors.map((error) => (
+        <li key={error}>{error}</li>
+      ))}
+    </ul>
+  ) : null}
+
+  {demographicWarnings.length > 0 ? (
+    <ul className="mt-3 space-y-1 rounded border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+      {demographicWarnings.map((warning) => (
+        <li key={warning}>{warning}</li>
+      ))}
+    </ul>
+  ) : null}
+
+  {demographics && demographicSummary ? (
+    <>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="rounded border border-border p-3">
+          <p className="label-caps">Records</p>
+          <p className="num-lg mt-1">
+            {demographicSummary.totalRecords}
+          </p>
+        </div>
+
+        <div className="rounded border border-border p-3">
+          <p className="label-caps">Matched wards</p>
+          <p className="num-lg mt-1">
+            {demographicSummary.matchedWards}
+          </p>
+        </div>
+
+        <div className="rounded border border-border p-3">
+          <p className="label-caps">Unmatched</p>
+          <p className="num-lg mt-1">
+            {demographicSummary.unmatchedRecords}
+          </p>
+        </div>
+
+        <div className="rounded border border-border p-3">
+          <p className="label-caps">Scored</p>
+          <p className="num-lg mt-1">
+            {demographicSummary.scoredWards}
+          </p>
+        </div>
+
+        <div className="rounded border border-border p-3">
+          <p className="label-caps">
+            Population
+          </p>
+          <p className="num-lg mt-1">
+            {demographicSummary.population !== null
+              ? demographicSummary.population.toLocaleString(
+                  "en-IN",
+                )
+              : "—"}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[1100px] text-xs">
+          <thead>
+            <tr className="border-b border-border text-left">
+              <th className="px-2 py-2">Ward</th>
+              <th className="px-2 py-2">Population</th>
+              <th className="px-2 py-2">Elderly</th>
+              <th className="px-2 py-2">Children</th>
+              <th className="px-2 py-2">
+                Outdoor workers
+              </th>
+              <th className="px-2 py-2">
+                Low income
+              </th>
+              <th className="px-2 py-2">
+                Disability
+              </th>
+              <th className="px-2 py-2">
+                No cooling
+              </th>
+              <th className="px-2 py-2">
+                Vulnerability
+              </th>
+              <th className="px-2 py-2">Level</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {wards.map((ward) => {
+              const record =
+                getWardDemographics(
+                  demographics.records,
+                  ward,
+                );
+
+              const vulnerability = record
+                ? calculateVulnerability(record)
+                : null;
+
+              return (
+                <tr
+                  key={`demographic-${ward.id}`}
+                  className="border-b border-border/60"
+                >
+                  <td className="px-2 py-2 font-medium">
+                    {ward.wardNumber ?? "—"}
+                    {ward.name
+                      ? ` · ${ward.name}`
+                      : ""}
+                  </td>
+
+                  <td className="px-2 py-2">
+                    {record?.population !== undefined
+                      ? record.population.toLocaleString(
+                          "en-IN",
+                        )
+                      : "—"}
+                  </td>
+
+                  <td className="px-2 py-2">
+                    {record?.elderlyPct !== undefined
+                      ? `${record.elderlyPct}%`
+                      : "—"}
+                  </td>
+
+                  <td className="px-2 py-2">
+                    {record?.childrenPct !== undefined
+                      ? `${record.childrenPct}%`
+                      : "—"}
+                  </td>
+
+                  <td className="px-2 py-2">
+                    {record?.outdoorWorkersPct !==
+                    undefined
+                      ? `${record.outdoorWorkersPct}%`
+                      : "—"}
+                  </td>
+
+                  <td className="px-2 py-2">
+                    {record?.lowIncomePct !==
+                    undefined
+                      ? `${record.lowIncomePct}%`
+                      : "—"}
+                  </td>
+
+                  <td className="px-2 py-2">
+                    {record?.disabilityPct !==
+                    undefined
+                      ? `${record.disabilityPct}%`
+                      : "—"}
+                  </td>
+
+                  <td className="px-2 py-2">
+                    {record?.noCoolingPct !==
+                    undefined
+                      ? `${record.noCoolingPct}%`
+                      : "—"}
+                  </td>
+
+                  <td className="px-2 py-2 font-mono">
+                    {vulnerability?.score !== null &&
+                    vulnerability?.score !==
+                      undefined
+                      ? vulnerability.score.toFixed(1)
+                      : "—"}
+                  </td>
+
+                  <td className="px-2 py-2">
+                    {vulnerability?.level ?? "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-4 rounded border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <p className="font-semibold text-foreground">
+          Vulnerability scoring
+        </p>
+
+        <p className="mt-1">
+          Elderly 20% · Children 15% · Outdoor workers
+          20% · Low income 20% · Disability 10% · No
+          cooling access 15%.
+        </p>
+
+        <p className="mt-1">
+          If an indicator is missing, its weight is
+          redistributed across the available indicators.
+          Missing data is never treated as zero.
+        </p>
+
+        <p className="mt-1">
+          Source: {demographics.sourceLabel}
+        </p>
+
+        <button
+          type="button"
+          onClick={() => {
+            clearDemographicsDataset();
+            setDemographics(null);
+            setDemographicErrors([]);
+            setDemographicWarnings([]);
+
+            if (demographicFileRef.current) {
+              demographicFileRef.current.value = "";
+            }
+          }}
+          className="mt-3 rounded border border-input px-2 py-1 font-medium text-foreground hover:bg-accent"
+        >
+          Remove demographic dataset
+        </button>
+      </div>
+    </>
+  ) : (
+    <div className="mt-4 rounded border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+      No demographic dataset is loaded.
+
+      <p className="mt-1 text-xs">
+        Import a verified CSV or JSON file to calculate
+        ward-level vulnerability scores.
+      </p>
+    </div>
+  )}
+</section>  
+  (
     <AppShell>
       <div className="space-y-6">
         <section className="panel p-4 sm:p-5">
