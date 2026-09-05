@@ -81,29 +81,8 @@ function Dashboard() {
         Know about dangerous heat before it happens.
       </p>
 
-      {/* 1 — TOP HERO CARD */}
-      <section className={`panel border-2 p-5 sm:p-6 ${warning.colorClass}`}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="label-caps">🌡️ Heatwave Early Warning</p>
-            <h1 className="font-display mt-1 text-3xl font-bold sm:text-4xl">
-              {warning.emoji} {warning.label}
-            </h1>
-            <p className="num-md mt-2 text-lg">{warning.headline}</p>
-            <p className="mt-1 max-w-xl text-sm">{warning.explanation}</p>
-          </div>
-          <div className="grid shrink-0 gap-1 text-xs">
-            <SourceRow label="Open-Meteo" ok={data.status !== "OFFLINE"} degraded={data.status === "DEGRADED"} />
-            <SourceRow label="IMD" ok={imd.ok} notConnected={!imd.configured} />
-            <p className="mt-1 text-[11px] opacity-80">
-              Last updated: {formatIST(data.meta.retrievedAt)}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* WARD-LEVEL RISK MAP */}
-      <section className="panel mt-4 overflow-hidden">
+      {/* WARD-LEVEL RISK MAP — moved to front of page */}
+      <section className="panel overflow-hidden">
         <div className="border-b border-border p-4 sm:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -240,6 +219,27 @@ function Dashboard() {
           Risk formula: 60% thermal hazard + 40% ward vulnerability.
           Thermal hazard is derived from WBGT and UTCI. No geographic
           risk value is manually assigned.
+        </div>
+      </section>
+
+      {/* HERO CARD — now below the map */}
+      <section className={`panel border-2 mt-4 p-5 sm:p-6 ${warning.colorClass}`}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="label-caps">🌡️ Heatwave Early Warning</p>
+            <h1 className="font-display mt-1 text-3xl font-bold sm:text-4xl">
+              {warning.emoji} {warning.label}
+            </h1>
+            <p className="num-md mt-2 text-lg">{warning.headline}</p>
+            <p className="mt-1 max-w-xl text-sm">{warning.explanation}</p>
+          </div>
+          <div className="grid shrink-0 gap-1 text-xs">
+            <SourceRow label="Open-Meteo" ok={data.status !== "OFFLINE"} degraded={data.status === "DEGRADED"} />
+            <SourceRow label="IMD" ok={imd.ok} notConnected={!imd.configured} />
+            <p className="mt-1 text-[11px] opacity-80">
+              Last updated: {formatIST(data.meta.retrievedAt)}
+            </p>
+          </div>
         </div>
       </section>
 
@@ -539,3 +539,4 @@ function Kpi({
     </article>
   );
 }
+
