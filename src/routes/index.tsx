@@ -68,7 +68,40 @@ import {
   const c = data.current;
   const d = data.derived;
   const p = data.persistence;
+const [selectedWardId, setSelectedWardId] =
+  useState<string | null>(null);
 
+const wardDataset = useMemo(
+  () =>
+    loadWardDataset() ??
+    builtInWardDataset(),
+  [],
+);
+
+const wards: Ward[] =
+  wardDataset?.wards ?? [];
+
+const wardRisks = useMemo(
+  () =>
+    wards.length > 0
+      ? calculateAllWardRisks(
+          wards,
+          data,
+        )
+      : {},
+  [wards, data],
+);
+
+const selectedWard =
+  wards.find(
+    (ward) =>
+      ward.id === selectedWardId,
+  ) ?? null;
+
+const selectedRisk =
+  selectedWard
+    ? wardRisks[selectedWard.id]
+    : null;
   return (
     <AppShell>
       {/* MAIN MESSAGE */}
@@ -96,7 +129,180 @@ import {
           </div>
         </div>
       </section>
+{/* WARD-LEVEL RISK MAP */}
+<section className="panel mt-4 overflow-hidden">
+  <div className="border-b border-border p-4 sm:p-5">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="label-caps">
+          🗺️ Ward-Level Heat Risk
+        </p>
 
+        <h2 className="font-display mt-1 text-2xl font-bold sm:text-3xl">
+          Jaipur Heat-Health Risk Map
+        </h2>
+
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Each ward is scored from current thermal stress
+          and ward vulnerability. Click a ward to inspect
+          its calculated risk.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2 text-xs font-semibold">
+        <span className="rounded bg-ok/15 px-2 py-1 text-ok">
+          🟢 Low
+        </span>
+
+        <span className="rounded bg-warn/20 px-2 py-1">
+          🟡 Moderate
+        </span>
+
+        <span className="rounded bg-risk-3/20 px-2 py-1">
+          🟠 High
+        </span>
+
+        <span className="rounded bg-destructive/15 px-2 py-1 text-destructive">
+          🔴 Extreme
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+    <div className="h-[480px] min-h-[420px]">
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            Loading Jaipur ward risk map…
+          </div>
+        }
+      >
+        <WardMap
+          wards={wards}
+          risks={wardRisks}
+          selectedId={selectedWardId}
+          onSelect={(ward) =>
+            setSelectedWardId(ward.id)
+          }
+        />
+      </Suspense>
+    </div>
+
+    <div className="border-t border-border p-4 sm:p-5 lg:border-l lg:border-t-0">
+      {selectedWard && selectedRisk ? (
+        <div className="space-y-4">
+          <div>
+            <p className="label-caps">
+              Selected Ward
+            </p>
+
+            <h3 className="font-display mt-1 text-2xl font-bold">
+              {selectedWard.name ??
+                `Ward ${selectedWard.wardNumber ?? "—"}`}
+            </h3>
+
+            {selectedWard.wardNumber ? (
+              <p className="text-sm text-muted-foreground">
+                Ward {selectedWard.wardNumber}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/30 p-4 text-center">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Calculated Risk
+            </p>
+
+            <p className="mt-1 text-5xl font-bold">
+              {selectedRisk.riskScore}
+            </p>
+
+            <p className="mt-1 text-sm font-bold">
+              {selectedRisk.level}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded border border-border p-3">
+              <p className="text-xs text-muted-foreground">
+                Thermal hazard
+              </p>
+
+              <p className="mt-1 text-xl font-bold">
+                {selectedRisk.thermalHazard}
+              </p>
+            </div>
+
+            <div className="rounded border border-border p-3">
+              <p className="text-xs text-muted-foreground">
+                Vulnerability
+              </p>
+
+              <p className="mt-1 text-xl font-bold">
+                {selectedRisk.vulnerability}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded border border-border p-3">
+              <p className="text-xs text-muted-foreground">
+                WBGT
+              </p>
+
+              <p className="mt-1 font-mono text-lg font-bold">
+                {selectedRisk.wbgt ?? "—"}°C
+              </p>
+            </div>
+
+            <div className="rounded border border-border p-3">
+              <p className="text-xs text-muted-foreground">
+                UTCI
+              </p>
+
+              <p className="mt-1 font-mono text-lg font-bold">
+                {selectedRisk.utci ?? "—"}°C
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded border border-border p-3">
+            <p className="text-xs font-semibold">
+              Why this ward is at risk
+            </p>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              {selectedRisk.explanation}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex h-full min-h-[260px] flex-col items-center justify-center text-center">
+          <div className="text-4xl">
+            🗺️
+          </div>
+
+          <h3 className="mt-3 font-display text-lg font-semibold">
+            Select a ward
+          </h3>
+
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+            Click any ward on the Jaipur map to see
+            its calculated heat-health risk, thermal
+            stress and vulnerability.
+          </p>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <div className="border-t border-border p-3 text-xs text-muted-foreground">
+    Risk formula: 60% thermal hazard + 40% ward vulnerability.
+    Thermal hazard is derived from WBGT and UTCI. No geographic
+    risk value is manually assigned.
+  </div>
+</section>
       {/* 3 — SIMPLE FLOW */}
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <FlowCard title="Heatwave Warning" step={1}>
@@ -114,31 +320,47 @@ import {
         </FlowCard>
 
        <FlowCard title="Highest-Risk Wards" step={3}>
-  {demographicsLoaded ? (
+  {Object.values(wardRisks).length > 0 ? (
     <>
-      <p className="text-sm font-semibold">
-        Vulnerability data loaded
-      </p>
+      {(() => {
+        const highest = [...Object.values(wardRisks)]
+          .sort(
+            (a, b) =>
+              b.riskScore - a.riskScore,
+          )
+          .slice(0, 3);
 
-      <p className="mt-1 text-xs text-muted-foreground">
-        Ward vulnerability scores are available. Final
-        heat-risk ranking remains disabled until the
-        multi-factor risk engine is implemented.
-      </p>
+        return (
+          <div className="space-y-1">
+            {highest.map((ward) => (
+              <button
+                key={ward.wardId}
+                onClick={() =>
+                  setSelectedWardId(
+                    ward.wardId,
+                  )
+                }
+                className="flex w-full items-center justify-between rounded px-2 py-1 text-left hover:bg-accent"
+              >
+                <span className="truncate text-xs font-medium">
+                  {ward.wardName ??
+                    `Ward ${ward.wardNumber ?? "—"}`}
+                </span>
+
+                <span className="ml-2 font-mono text-xs font-bold">
+                  {ward.riskScore}
+                </span>
+              </button>
+            ))}
+          </div>
+        );
+      })()}
     </>
   ) : (
-    <>
-      <p className="text-sm text-muted-foreground">
-        Ward vulnerability data has not been imported yet.
-      </p>
-
-      <a
-        href="/wards"
-        className="mt-2 inline-block text-xs font-semibold text-accent underline"
-      >
-        Import demographic data →
-      </a>
-    </>
+    <p className="text-xs text-muted-foreground">
+      Ward risk calculation is unavailable because
+      verified ward geometry is not loaded.
+    </p>
   )}
 </FlowCard>
 
