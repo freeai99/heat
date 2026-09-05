@@ -1,22 +1,4 @@
-import {
-  loadDemographicsDataset,
-  summarizeDemographics,
-} from "../lib/demographics";
-import { useMemo, useState, lazy, Suspense } from "react";
-import {
-  useMemo,
-  useState,
-  lazy,
-  Suspense,
-  type ReactNode,
-} from "react";
-import { calculateAllWardRisks } from "../lib/wardRisk";
-import {
-  builtInWardDataset,
-  loadWardDataset,
-} from "../lib/wards";
-import type { Ward } from "../types/wards";
-const WardMap = lazy(() => import("../components/WardMap"));
+import { useMemo, useState, lazy, Suspense, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { CircleAlert, Clock, Database, MapPin, ChevronDown, ChevronUp } from "lucide-react";
@@ -26,6 +8,12 @@ import { RISK_META, RiskBadge, type RiskLevel } from "../components/RiskBadge";
 import { SourceTag } from "../components/SourceTag";
 import { fmt, formatIST, weatherQueryOptions, imdQueryOptions } from "../lib/weatherQuery";
 import { computeEarlyWarning, levelToRiskNumber } from "../lib/earlyWarning";
+import { calculateAllWardRisks } from "../lib/wardRisk";
+import { builtInWardDataset, loadWardDataset } from "../lib/wards";
+import { loadDemographicsDataset, summarizeDemographics } from "../lib/demographics";
+import type { Ward } from "../types/wards";
+
+const WardMap = lazy(() => import("../components/WardMap"));
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,50 +46,34 @@ function Dashboard() {
   const { data } = useSuspenseQuery(weatherQueryOptions);
   const { data: imd } = useSuspenseQuery(imdQueryOptions);
   const [showDetails, setShowDetails] = useState(false);
-import {
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+
   const warning = computeEarlyWarning(data);
   const riskLevel = levelToRiskNumber(warning.level) as RiskLevel;
   const c = data.current;
   const d = data.derived;
   const p = data.persistence;
-const [selectedWardId, setSelectedWardId] =
-  useState<string | null>(null);
 
-const wardDataset = useMemo(
-  () =>
-    loadWardDataset() ??
-    builtInWardDataset(),
-  [],
-);
+  const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
 
-const wards: Ward[] =
-  wardDataset?.wards ?? [];
+  const wardDataset = useMemo(() => loadWardDataset() ?? builtInWardDataset(), []);
+  const wards: Ward[] = wardDataset?.wards ?? [];
 
-const wardRisks = useMemo(
-  () =>
-    wards.length > 0
-      ? calculateAllWardRisks(
-          wards,
-          data,
-        )
-      : {},
-  [wards, data],
-);
+  const demographicsDataset = useMemo(() => loadDemographicsDataset(), []);
+  const demographics = demographicsDataset?.records ?? [];
 
-const selectedWard =
-  wards.find(
-    (ward) =>
-      ward.id === selectedWardId,
-  ) ?? null;
+  const demographicsSummary = useMemo(
+    () => (wards.length > 0 ? summarizeDemographics(demographics, wards) : null),
+    [demographics, wards],
+  );
 
-const selectedRisk =
-  selectedWard
-    ? wardRisks[selectedWard.id]
-    : null;
+  const wardRisks = useMemo(
+    () => (wards.length > 0 ? calculateAllWardRisks(wards, data, demographics) : {}),
+    [wards, data, demographics],
+  );
+
+  const selectedWard = wards.find((ward) => ward.id === selectedWardId) ?? null;
+  const selectedRisk = selectedWard ? wardRisks[selectedWard.id] : null;
+
   return (
     <AppShell>
       {/* MAIN MESSAGE */}
@@ -129,180 +101,148 @@ const selectedRisk =
           </div>
         </div>
       </section>
-{/* WARD-LEVEL RISK MAP */}
-<section className="panel mt-4 overflow-hidden">
-  <div className="border-b border-border p-4 sm:p-5">
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p className="label-caps">
-          🗺️ Ward-Level Heat Risk
-        </p>
 
-        <h2 className="font-display mt-1 text-2xl font-bold sm:text-3xl">
-          Jaipur Heat-Health Risk Map
-        </h2>
+      {/* WARD-LEVEL RISK MAP */}
+      <section className="panel mt-4 overflow-hidden">
+        <div className="border-b border-border p-4 sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="label-caps">🗺️ Ward-Level Heat Risk</p>
 
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Each ward is scored from current thermal stress
-          and ward vulnerability. Click a ward to inspect
-          its calculated risk.
-        </p>
-      </div>
+              <h2 className="font-display mt-1 text-2xl font-bold sm:text-3xl">
+                Jaipur Heat-Health Risk Map
+              </h2>
 
-      <div className="flex flex-wrap gap-2 text-xs font-semibold">
-        <span className="rounded bg-ok/15 px-2 py-1 text-ok">
-          🟢 Low
-        </span>
-
-        <span className="rounded bg-warn/20 px-2 py-1">
-          🟡 Moderate
-        </span>
-
-        <span className="rounded bg-risk-3/20 px-2 py-1">
-          🟠 High
-        </span>
-
-        <span className="rounded bg-destructive/15 px-2 py-1 text-destructive">
-          🔴 Extreme
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-    <div className="h-[480px] min-h-[420px]">
-      <Suspense
-        fallback={
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Loading Jaipur ward risk map…
-          </div>
-        }
-      >
-        <WardMap
-          wards={wards}
-          risks={wardRisks}
-          selectedId={selectedWardId}
-          onSelect={(ward) =>
-            setSelectedWardId(ward.id)
-          }
-        />
-      </Suspense>
-    </div>
-
-    <div className="border-t border-border p-4 sm:p-5 lg:border-l lg:border-t-0">
-      {selectedWard && selectedRisk ? (
-        <div className="space-y-4">
-          <div>
-            <p className="label-caps">
-              Selected Ward
-            </p>
-
-            <h3 className="font-display mt-1 text-2xl font-bold">
-              {selectedWard.name ??
-                `Ward ${selectedWard.wardNumber ?? "—"}`}
-            </h3>
-
-            {selectedWard.wardNumber ? (
-              <p className="text-sm text-muted-foreground">
-                Ward {selectedWard.wardNumber}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="rounded-lg border border-border bg-muted/30 p-4 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Calculated Risk
-            </p>
-
-            <p className="mt-1 text-5xl font-bold">
-              {selectedRisk.riskScore}
-            </p>
-
-            <p className="mt-1 text-sm font-bold">
-              {selectedRisk.level}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded border border-border p-3">
-              <p className="text-xs text-muted-foreground">
-                Thermal hazard
-              </p>
-
-              <p className="mt-1 text-xl font-bold">
-                {selectedRisk.thermalHazard}
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                Each ward is scored from current thermal stress
+                and ward vulnerability. Click a ward to inspect
+                its calculated risk.
               </p>
             </div>
 
-            <div className="rounded border border-border p-3">
-              <p className="text-xs text-muted-foreground">
-                Vulnerability
-              </p>
-
-              <p className="mt-1 text-xl font-bold">
-                {selectedRisk.vulnerability}
-              </p>
+            <div className="flex flex-wrap gap-2 text-xs font-semibold">
+              <span className="rounded bg-ok/15 px-2 py-1 text-ok">🟢 Low</span>
+              <span className="rounded bg-warn/20 px-2 py-1">🟡 Moderate</span>
+              <span className="rounded bg-risk-3/20 px-2 py-1">🟠 High</span>
+              <span className="rounded bg-destructive/15 px-2 py-1 text-destructive">🔴 Extreme</span>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded border border-border p-3">
-              <p className="text-xs text-muted-foreground">
-                WBGT
-              </p>
-
-              <p className="mt-1 font-mono text-lg font-bold">
-                {selectedRisk.wbgt ?? "—"}°C
-              </p>
-            </div>
-
-            <div className="rounded border border-border p-3">
-              <p className="text-xs text-muted-foreground">
-                UTCI
-              </p>
-
-              <p className="mt-1 font-mono text-lg font-bold">
-                {selectedRisk.utci ?? "—"}°C
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded border border-border p-3">
-            <p className="text-xs font-semibold">
-              Why this ward is at risk
-            </p>
-
-            <p className="mt-1 text-sm text-muted-foreground">
-              {selectedRisk.explanation}
-            </p>
           </div>
         </div>
-      ) : (
-        <div className="flex h-full min-h-[260px] flex-col items-center justify-center text-center">
-          <div className="text-4xl">
-            🗺️
+
+        <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+          <div className="h-[480px] min-h-[420px]">
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  Loading Jaipur ward risk map…
+                </div>
+              }
+            >
+              <WardMap
+                wards={wards}
+                risks={wardRisks}
+                selectedId={selectedWardId}
+                onSelect={(ward) => setSelectedWardId(ward.id)}
+              />
+            </Suspense>
           </div>
 
-          <h3 className="mt-3 font-display text-lg font-semibold">
-            Select a ward
-          </h3>
+          <div className="border-t border-border p-4 sm:p-5 lg:border-l lg:border-t-0">
+            {selectedWard && selectedRisk ? (
+              <div className="space-y-4">
+                <div>
+                  <p className="label-caps">Selected Ward</p>
 
-          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-            Click any ward on the Jaipur map to see
-            its calculated heat-health risk, thermal
-            stress and vulnerability.
-          </p>
+                  <h3 className="font-display mt-1 text-2xl font-bold">
+                    {selectedWard.name ?? `Ward ${selectedWard.wardNumber ?? "—"}`}
+                  </h3>
+
+                  {selectedWard.wardNumber ? (
+                    <p className="text-sm text-muted-foreground">
+                      Ward {selectedWard.wardNumber}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="rounded-lg border border-border bg-muted/30 p-4 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Calculated Risk
+                  </p>
+
+                  <p className="mt-1 text-5xl font-bold">{selectedRisk.riskScore}</p>
+
+                  <p className="mt-1 text-sm font-bold">{selectedRisk.level}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Thermal hazard</p>
+                    <p className="mt-1 text-xl font-bold">{selectedRisk.thermalHazard}</p>
+                  </div>
+
+                  <div className="rounded border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Vulnerability</p>
+                    <p className="mt-1 text-xl font-bold">{selectedRisk.vulnerability}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded border border-border p-3">
+                    <p className="text-xs text-muted-foreground">WBGT</p>
+                    <p className="mt-1 font-mono text-lg font-bold">
+                      {selectedRisk.wbgt ?? "—"}°C
+                    </p>
+                  </div>
+
+                  <div className="rounded border border-border p-3">
+                    <p className="text-xs text-muted-foreground">UTCI</p>
+                    <p className="mt-1 font-mono text-lg font-bold">
+                      {selectedRisk.utci ?? "—"}°C
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded border border-border p-3">
+                  <p className="text-xs font-semibold">Why this ward is at risk</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{selectedRisk.explanation}</p>
+                </div>
+
+                {selectedRisk.vulnerabilitySource !== "default" ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    Vulnerability source:{" "}
+                    {selectedRisk.vulnerabilitySource === "demographics"
+                      ? "imported demographics dataset"
+                      : "ward boundary properties"}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-warn">
+                    No demographics matched this ward — vulnerability defaulted to neutral (50).
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-full min-h-[260px] flex-col items-center justify-center text-center">
+                <div className="text-4xl">🗺️</div>
+
+                <h3 className="mt-3 font-display text-lg font-semibold">Select a ward</h3>
+
+                <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+                  Click any ward on the Jaipur map to see
+                  its calculated heat-health risk, thermal
+                  stress and vulnerability.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-    </div>
-  </div>
 
-  <div className="border-t border-border p-3 text-xs text-muted-foreground">
-    Risk formula: 60% thermal hazard + 40% ward vulnerability.
-    Thermal hazard is derived from WBGT and UTCI. No geographic
-    risk value is manually assigned.
-  </div>
-</section>
+        <div className="border-t border-border p-3 text-xs text-muted-foreground">
+          Risk formula: 60% thermal hazard + 40% ward vulnerability.
+          Thermal hazard is derived from WBGT and UTCI. No geographic
+          risk value is manually assigned.
+        </div>
+      </section>
+
       {/* 3 — SIMPLE FLOW */}
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <FlowCard title="Heatwave Warning" step={1}>
@@ -319,50 +259,40 @@ const selectedRisk =
           </p>
         </FlowCard>
 
-       <FlowCard title="Highest-Risk Wards" step={3}>
-  {Object.values(wardRisks).length > 0 ? (
-    <>
-      {(() => {
-        const highest = [...Object.values(wardRisks)]
-          .sort(
-            (a, b) =>
-              b.riskScore - a.riskScore,
-          )
-          .slice(0, 3);
+        <FlowCard title="Highest-Risk Wards" step={3}>
+          {Object.values(wardRisks).length > 0 ? (
+            <>
+              {(() => {
+                const highest = [...Object.values(wardRisks)]
+                  .sort((a, b) => b.riskScore - a.riskScore)
+                  .slice(0, 3);
 
-        return (
-          <div className="space-y-1">
-            {highest.map((ward) => (
-              <button
-                key={ward.wardId}
-                onClick={() =>
-                  setSelectedWardId(
-                    ward.wardId,
-                  )
-                }
-                className="flex w-full items-center justify-between rounded px-2 py-1 text-left hover:bg-accent"
-              >
-                <span className="truncate text-xs font-medium">
-                  {ward.wardName ??
-                    `Ward ${ward.wardNumber ?? "—"}`}
-                </span>
+                return (
+                  <div className="space-y-1">
+                    {highest.map((ward) => (
+                      <button
+                        key={ward.wardId}
+                        onClick={() => setSelectedWardId(ward.wardId)}
+                        className="flex w-full items-center justify-between rounded px-2 py-1 text-left hover:bg-accent"
+                      >
+                        <span className="truncate text-xs font-medium">
+                          {ward.wardName ?? `Ward ${ward.wardNumber ?? "—"}`}
+                        </span>
 
-                <span className="ml-2 font-mono text-xs font-bold">
-                  {ward.riskScore}
-                </span>
-              </button>
-            ))}
-          </div>
-        );
-      })()}
-    </>
-  ) : (
-    <p className="text-xs text-muted-foreground">
-      Ward risk calculation is unavailable because
-      verified ward geometry is not loaded.
-    </p>
-  )}
-</FlowCard>
+                        <span className="ml-2 font-mono text-xs font-bold">{ward.riskScore}</span>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Ward risk calculation is unavailable because
+              verified ward geometry is not loaded.
+            </p>
+          )}
+        </FlowCard>
 
         <FlowCard title="Recommended Action" step={4}>
           <RiskBadge level={riskLevel} />
@@ -481,107 +411,4 @@ const selectedRisk =
           <section className="mt-4 grid gap-3 lg:grid-cols-3">
             <div className="panel p-4 lg:col-span-2">
               <h3 className="text-lg font-semibold">Ward-level risk layer</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Ward risk scoring requires verified Jaipur Municipal Corporation ward boundaries and
-                vulnerability datasets. No ward geometry or demographic data has been imported yet, so
-                no ward risk figures are shown — inventing them would breach the project&apos;s data
-                rules.
-              </p>
-              <div className="mt-3 rounded border border-dashed border-border bg-muted/50 p-6 text-center">
-                <p className="text-sm font-semibold">Ward dataset not loaded</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Highest-risk ward, high/extreme ward counts and the Jaipur map become available after
-                  Phase 3 (ward GeoJSON import) and Phase 6 (vulnerability import).
-                </p>
-              </div>
-            </div>
-            <div className="panel p-4">
-              <h3 className="text-lg font-semibold">Risk classification</h3>
-              <p className="label-caps mt-1">Prototype risk classification</p>
-              <ul className="mt-3 space-y-3">
-                {([1, 2, 3, 4] as RiskLevel[]).map((level) => (
-                  <li key={level}>
-                    <RiskBadge level={level} />
-                    <p className="mt-1 text-xs text-muted-foreground">{RISK_META[level].guidance}</p>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-[11px] text-muted-foreground">
-                Not official IMD categories. Thresholds will be administrator-configurable.
-              </p>
-            </div>
-          </section>
-        </>
-      ) : null}
-    </AppShell>
-  );
-}
-
-function SourceRow({
-  label,
-  ok,
-  degraded,
-  notConnected,
-}: {
-  label: string;
-  ok: boolean;
-  degraded?: boolean;
-  notConnected?: boolean;
-}) {
-  const text = notConnected
-    ? `${label}: Not connected`
-    : ok
-      ? `${label} ✓ Live`
-      : degraded
-        ? `${label}: Degraded`
-        : `${label}: Unavailable`;
-  return <p className="font-semibold">{text}</p>;
-}
-
-function FlowCard({ title, step, children }: { title: string; step: number; children: ReactNode }) {
-  return (
-    <article className="panel p-4">
-      <p className="label-caps">
-        Step {step} · {title}
-      </p>
-      <div className="mt-2">{children}</div>
-    </article>
-  );
-}
-
-function Meta({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <Icon className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-      <div>
-        <dt className="label-caps">{label}</dt>
-        <dd className="num-md text-xs">{value}</dd>
-      </div>
-    </div>
-  );
-}
-
-function Kpi({
-  title,
-  value,
-  sub,
-  kind,
-  source,
-  timestamp,
-}: {
-  title: string;
-  value: string;
-  sub: string;
-  kind: "LIVE" | "DERIVED" | "MODEL";
-  source: string;
-  timestamp?: string | null | undefined;
-}) {
-  return (
-    <article className="panel p-4">
-      <h3 className="label-caps">{title}</h3>
-      <p className="num-xl mt-1">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
-      <SourceTag kind={kind} source={source} timestamp={timestamp} />
-    </article>
-  );
-}
+              <p
