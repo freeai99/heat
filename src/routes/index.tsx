@@ -411,4 +411,131 @@ function Dashboard() {
           <section className="mt-4 grid gap-3 lg:grid-cols-3">
             <div className="panel p-4 lg:col-span-2">
               <h3 className="text-lg font-semibold">Ward-level risk layer</h3>
-              <p
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ward risk combines live thermal hazard with vulnerability from imported
+                demographics data where available, falling back to a neutral value for
+                unmatched wards.
+              </p>
+              {demographicsSummary ? (
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="rounded border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Wards matched</p>
+                    <p className="mt-1 text-xl font-bold">
+                      {demographicsSummary.matchedWards} / {wards.length}
+                    </p>
+                  </div>
+                  <div className="rounded border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Wards without demographics</p>
+                    <p className="mt-1 text-xl font-bold">
+                      {demographicsSummary.wardsWithoutDemographics}
+                    </p>
+                  </div>
+                  <div className="rounded border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Indicators available</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {demographicsSummary.indicatorsAvailable.length > 0
+                        ? demographicsSummary.indicatorsAvailable.join(", ")
+                        : "None imported"}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 rounded border border-dashed border-border bg-muted/50 p-6 text-center">
+                  <p className="text-sm font-semibold">No demographics dataset loaded</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    All wards are using a neutral vulnerability default until a demographics
+                    file is imported.
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="panel p-4">
+              <h3 className="text-lg font-semibold">Risk classification</h3>
+              <p className="label-caps mt-1">Prototype risk classification</p>
+              <ul className="mt-3 space-y-3">
+                {([1, 2, 3, 4] as RiskLevel[]).map((level) => (
+                  <li key={level}>
+                    <RiskBadge level={level} />
+                    <p className="mt-1 text-xs text-muted-foreground">{RISK_META[level].guidance}</p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                Not official IMD categories. Thresholds will be administrator-configurable.
+              </p>
+            </div>
+          </section>
+        </>
+      ) : null}
+    </AppShell>
+  );
+}
+
+function SourceRow({
+  label,
+  ok,
+  degraded,
+  notConnected,
+}: {
+  label: string;
+  ok: boolean;
+  degraded?: boolean;
+  notConnected?: boolean;
+}) {
+  const text = notConnected
+    ? `${label}: Not connected`
+    : ok
+      ? `${label} ✓ Live`
+      : degraded
+        ? `${label}: Degraded`
+        : `${label}: Unavailable`;
+  return <p className="font-semibold">{text}</p>;
+}
+
+function FlowCard({ title, step, children }: { title: string; step: number; children: ReactNode }) {
+  return (
+    <article className="panel p-4">
+      <p className="label-caps">
+        Step {step} · {title}
+      </p>
+      <div className="mt-2">{children}</div>
+    </article>
+  );
+}
+
+function Meta({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <Icon className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+      <div>
+        <dt className="label-caps">{label}</dt>
+        <dd className="num-md text-xs">{value}</dd>
+      </div>
+    </div>
+  );
+}
+
+function Kpi({
+  title,
+  value,
+  sub,
+  kind,
+  source,
+  timestamp,
+}: {
+  title: string;
+  value: string;
+  sub: string;
+  kind: "LIVE" | "DERIVED" | "MODEL";
+  source: string;
+  timestamp?: string | null | undefined;
+}) {
+  return (
+    <article className="panel p-4">
+      <h3 className="label-caps">{title}</h3>
+      <p className="num-xl mt-1">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
+      <SourceTag kind={kind} source={source} timestamp={timestamp} />
+    </article>
+  );
+}
