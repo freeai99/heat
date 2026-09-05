@@ -2,9 +2,12 @@ import {
   loadDemographicsDataset,
   summarizeDemographics,
 } from "../lib/demographics";
+import { useMemo, useState, lazy, Suspense } from "react";
 import {
-  useEffect,
+  useMemo,
   useState,
+  lazy,
+  Suspense,
   type ReactNode,
 } from "react";
 import { createFileRoute } from "@tanstack/react-router";
