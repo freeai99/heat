@@ -10,6 +10,13 @@ import {
   Suspense,
   type ReactNode,
 } from "react";
+import { calculateAllWardRisks } from "../lib/wardRisk";
+import {
+  builtInWardDataset,
+  loadWardDataset,
+} from "../lib/wards";
+import type { Ward } from "../types/wards";
+const WardMap = lazy(() => import("../components/WardMap"));
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { CircleAlert, Clock, Database, MapPin, ChevronDown, ChevronUp } from "lucide-react";
